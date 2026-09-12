@@ -1,0 +1,780 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    " }" : {
+
+    },
+    ": " : {
+
+    },
+    "“%@” and its variables will be removed from this workspace." : {
+
+    },
+    "“%@” will be removed from Fastpost." : {
+
+    },
+    "\"ok\"" : {
+
+    },
+    "{ " : {
+
+    },
+    "{{%@}}" : {
+
+    },
+    "{{baseUrl}}" : {
+
+    },
+    "%lld" : {
+
+    },
+    "%lld ms" : {
+
+    },
+    "%lld pt" : {
+
+    },
+    "A workspace with this name already exists in that folder." : {
+
+    },
+    "Add" : {
+
+    },
+    "Add a certificate" : {
+
+    },
+    "Add a client certificate to use mTLS for matching hosts." : {
+
+    },
+    "Add a key" : {
+
+    },
+    "Add a PKCS#12 file" : {
+
+    },
+    "Add Certificate" : {
+
+    },
+    "Add the certificate files before sending." : {
+
+    },
+    "Add to" : {
+
+    },
+    "Add to Collection Variables" : {
+
+    },
+    "Add to Current Environment" : {
+
+    },
+    "Add Variable" : {
+
+    },
+    "Any" : {
+
+    },
+    "API Key" : {
+
+    },
+    "api.example.com" : {
+
+    },
+    "Appearance" : {
+
+    },
+    "Authorization" : {
+
+    },
+    "Automatic" : {
+
+    },
+    "Basic" : {
+
+    },
+    "Bearer" : {
+
+    },
+    "Binary Response" : {
+
+    },
+    "Body" : {
+
+    },
+    "Body Type" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Catppuccin Mocha" : {
+
+    },
+    "Certificate" : {
+
+    },
+    "Certificates" : {
+
+    },
+    "Check the URL and try again." : {
+
+    },
+    "Choose" : {
+
+    },
+    "Choose a certificate file" : {
+
+    },
+    "Choose a Fastpost workspace or a folder that contains a Postman collection." : {
+
+    },
+    "Choose a PKCS#12 file" : {
+
+    },
+    "Choose a private key" : {
+
+    },
+    "Choose a request from the sidebar, or create a new one." : {
+
+    },
+    "Choose the folder where this workspace will be created." : {
+
+    },
+    "Choose, drop, or paste" : {
+
+    },
+    "Choose, drop, or paste a file" : {
+
+    },
+    "Choose…" : {
+
+    },
+    "Client Certificate Failed" : {
+
+    },
+    "Client certificate for %@" : {
+
+    },
+    "Client Certificates" : {
+
+    },
+    "Collection Variables" : {
+
+    },
+    "Command" : {
+
+    },
+    "Commands" : {
+
+    },
+    "Connect to the internet and try again." : {
+
+    },
+    "Cookies" : {
+
+    },
+    "Cookies stay in memory for this app session." : {
+
+    },
+    "Copy" : {
+
+    },
+    "Copy as cURL" : {
+
+    },
+    "Copy Request" : {
+
+    },
+    "Could Not Connect" : {
+
+    },
+    "Couldn't Complete Action" : {
+
+    },
+    "Count" : {
+
+    },
+    "Create a folder or request to start building this collection." : {
+
+    },
+    "Create a workspace to organize collections, folders, and requests." : {
+
+    },
+    "Create Workspace" : {
+
+    },
+    "Dark" : {
+
+    },
+    "Default" : {
+
+    },
+    "Default keeps system window chrome and follows Appearance." : {
+
+    },
+    "Delete" : {
+
+    },
+    "DELETE" : {
+
+    },
+    "Delete Certificate?" : {
+
+    },
+    "Delete Environment?" : {
+
+    },
+    "Delete Folder?" : {
+
+    },
+    "Delete Item?" : {
+
+    },
+    "Delete Request?" : {
+
+    },
+    "Delete…" : {
+
+    },
+    "Domain" : {
+
+    },
+    "Done" : {
+
+    },
+    "Dracula" : {
+
+    },
+    "Drop a .crt, .cer, or .pem file" : {
+
+    },
+    "Drop a .key or .pem file, or paste the key" : {
+
+    },
+    "Drop a .pfx or .p12 file" : {
+
+    },
+    "Duplicate" : {
+
+    },
+    "Editor" : {
+
+    },
+    "Empty Body" : {
+
+    },
+    "Enabled" : {
+
+    },
+    "Encode URL Automatically" : {
+
+    },
+    "Enter a workspace name." : {
+
+    },
+    "Environment Missing" : {
+
+    },
+    "Environments" : {
+
+    },
+    "Environments…" : {
+
+    },
+    "Fastpost could not access the selected folder." : {
+
+    },
+    "Fastpost could not build a TLS identity from these files." : {
+
+    },
+    "Fastpost could not remember this folder. Choose it again." : {
+
+    },
+    "Fastpost could not save this collection." : {
+
+    },
+    "Files" : {
+
+    },
+    "Folder Selected" : {
+
+    },
+    "Follow Redirects" : {
+
+    },
+    "Font" : {
+
+    },
+    "Form URL Encoded" : {
+
+    },
+    "General" : {
+
+    },
+    "GET" : {
+
+    },
+    "Header" : {
+
+    },
+    "Headers" : {
+
+    },
+    "Health" : {
+
+    },
+    "Hide" : {
+
+    },
+    "Host" : {
+
+    },
+    "Host Not Found" : {
+
+    },
+    "HTTP Version" : {
+
+    },
+    "HTTP/3" : {
+
+    },
+    "Include this field" : {
+
+    },
+    "Indentation" : {
+
+    },
+    "Invalid URL" : {
+
+    },
+    "JSON" : {
+
+    },
+    "Key" : {
+
+    },
+    "Keyboard Shortcuts" : {
+
+    },
+    "Light" : {
+
+    },
+    "Location" : {
+
+    },
+    "Manage Environments…" : {
+
+    },
+    "Max Response Size" : {
+
+    },
+    "Maximum Redirects" : {
+
+    },
+    "MB" : {
+
+    },
+    "Method" : {
+
+    },
+    "Minimum TLS Version" : {
+
+    },
+    "Monokai" : {
+
+    },
+    "Name" : {
+
+    },
+    "Named themes restyle the whole app, including the sidebar, toolbar, and editors." : {
+
+    },
+    "New Certificate" : {
+
+    },
+    "New Environment" : {
+
+    },
+    "New Folder" : {
+
+    },
+    "New Request" : {
+
+    },
+    "New Workspace" : {
+
+    },
+    "New Workspace…" : {
+
+    },
+    "No Auth" : {
+
+    },
+    "No Body" : {
+
+    },
+    "No Certificates" : {
+
+    },
+    "No Cookies" : {
+
+    },
+    "No Environment" : {
+
+    },
+    "No folder selected" : {
+
+    },
+    "No Headers" : {
+
+    },
+    "No Recent Workspaces" : {
+
+    },
+    "No Request Selected" : {
+
+    },
+    "No Requests" : {
+
+    },
+    "No Response" : {
+
+    },
+    "No Results" : {
+
+    },
+    "Nord" : {
+
+    },
+    "Off" : {
+
+    },
+    "OK" : {
+
+    },
+    "One Dark" : {
+
+    },
+    "Open" : {
+
+    },
+    "Open Existing Workspace…" : {
+
+    },
+    "Open Workspace…" : {
+
+    },
+    "Parameter" : {
+
+    },
+    "Params" : {
+
+    },
+    "Password" : {
+
+    },
+    "Paste Request" : {
+
+    },
+    "Pasted File" : {
+
+    },
+    "Path" : {
+
+    },
+    "Payments API" : {
+
+    },
+    "PEM" : {
+
+    },
+    "PEM (CRT + KEY)" : {
+
+    },
+    "PFX" : {
+
+    },
+    "PKCS#12" : {
+
+    },
+    "PKCS#12 (PFX)" : {
+
+    },
+    "Port" : {
+
+    },
+    "POST" : {
+
+    },
+    "Preserve Method on Redirect" : {
+
+    },
+    "Preview" : {
+
+    },
+    "Preview truncated to the first megabyte." : {
+
+    },
+    "Private Key" : {
+
+    },
+    "Query" : {
+
+    },
+    "Ready" : {
+
+    },
+    "Redirects" : {
+
+    },
+    "Remove" : {
+
+    },
+    "Remove Referer on Redirect" : {
+
+    },
+    "Rename" : {
+
+    },
+    "Request" : {
+
+    },
+    "Request Cancelled" : {
+
+    },
+    "Request Failed" : {
+
+    },
+    "Request Timed Out" : {
+
+    },
+    "Requests" : {
+
+    },
+    "Reset" : {
+
+    },
+    "Reset All Shortcuts" : {
+
+    },
+    "Response size" : {
+
+    },
+    "Response time" : {
+
+    },
+    "Search" : {
+
+    },
+    "sec" : {
+
+    },
+    "Seconds" : {
+
+    },
+    "Secret" : {
+
+    },
+    "Section" : {
+
+    },
+    "Secure Connection Failed" : {
+
+    },
+    "Security" : {
+
+    },
+    "Select a request, or create one inside this folder." : {
+
+    },
+    "Select another environment." : {
+
+    },
+    "Send" : {
+
+    },
+    "Send a request to see the response." : {
+
+    },
+    "Send Authorization Header on Cross-Host Redirect" : {
+
+    },
+    "Send no-cache Header" : {
+
+    },
+    "Send Request" : {
+
+    },
+    "Sending…" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Shared by every environment. Active environment values override these keys." : {
+
+    },
+    "Shortcuts" : {
+
+    },
+    "Shortcuts apply immediately. ⌘C, ⌘V, ⌘X, ⌘A, ⌘Z, and ⌘Q stay reserved for the system." : {
+
+    },
+    "Show" : {
+
+    },
+    "Solarized Dark" : {
+
+    },
+    "Spaces" : {
+
+    },
+    "SSL Certificate Verification" : {
+
+    },
+    "Stop" : {
+
+    },
+    "Stop Request" : {
+
+    },
+    "Switch workspace" : {
+
+    },
+    "System" : {
+
+    },
+    "The certificate password is incorrect." : {
+
+    },
+    "The host name could not be resolved." : {
+
+    },
+    "The host refused the connection or dropped it." : {
+
+    },
+    "The request was stopped before it finished." : {
+
+    },
+    "The response did not include Set-Cookie." : {
+
+    },
+    "The server did not return any headers." : {
+
+    },
+    "The server rejected the client certificate." : {
+
+    },
+    "The server requested a client certificate, but none matched this host." : {
+
+    },
+    "The server returned an unexpected response." : {
+
+    },
+    "The server returned no content." : {
+
+    },
+    "The server took too long to respond." : {
+
+    },
+    "The TLS handshake or certificate check failed." : {
+
+    },
+    "Theme" : {
+
+    },
+    "This cannot be undone." : {
+
+    },
+    "This file is not a valid certificate." : {
+
+    },
+    "This file is not a valid PKCS#12 identity." : {
+
+    },
+    "This file is not a valid private key." : {
+
+    },
+    "This folder and its contents will be removed from the collection." : {
+
+    },
+    "This folder is not a Fastpost workspace or a Postman collection." : {
+
+    },
+    "This request will be sent without a body." : {
+
+    },
+    "This request will be sent without an Authorization header." : {
+
+    },
+    "This variable has no value in the current environment." : {
+
+    },
+    "This workspace folder is no longer available." : {
+
+    },
+    "Timeout" : {
+
+    },
+    "TLS 1.2" : {
+
+    },
+    "TLS 1.3" : {
+
+    },
+    "Token" : {
+
+    },
+    "Tokyo Night" : {
+
+    },
+    "true" : {
+
+    },
+    "Type" : {
+
+    },
+    "Use 0 for an unlimited redirect count." : {
+
+    },
+    "Use 0 for timeout or size to remove the limit. HTTP/3 is a hint; the system still chooses the protocol." : {
+
+    },
+    "Use Cookie Jar" : {
+
+    },
+    "Used automatically when a request host matches." : {
+
+    },
+    "Used for encrypted keys and PKCS#12 files. Fastpost does not remember whether the password is shown." : {
+
+    },
+    "Username" : {
+
+    },
+    "Value" : {
+
+    },
+    "Values here override collection variables with the same key." : {
+
+    },
+    "Variables" : {
+
+    },
+    "Welcome to Fastpost" : {
+
+    },
+    "Workspace" : {
+
+    },
+    "Workspace Name" : {
+
+    },
+    "You Are Offline" : {
+
+    }
+  },
+  "version" : "1.0"
+}
