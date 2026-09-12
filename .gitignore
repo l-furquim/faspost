@@ -22,6 +22,9 @@ xcuserdata/
 
 # Build
 build/
+dist/
+.ci-archive/
+*.xcarchive
 DerivedData/
 *.moved-aside
 *.hmap

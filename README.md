@@ -1,6 +1,12 @@
-# Fastpost
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="Fastpost">
+</p>
 
-A simple native macOS HTTP client. Build and send requests, inspect responses, and keep collections on disk — without Electron, a browser runtime, or a cloud account.
+<h1 align="center">Fastpost</h1>
+
+<p align="center">A simple native macOS HTTP client.</p>
+
+Build and send requests, inspect responses, and keep collections on disk — without Electron, a browser runtime, or a cloud account.
 
 Fastpost is built with SwiftUI (and AppKit only where SwiftUI cannot do the job, such as the code editor). It feels like a Mac app because it is one: system controls, menus, Settings, sandboxing, and a UI that stays fast because request state never invalidates the sidebar.
 
@@ -58,9 +64,24 @@ Preferences live in **Fastpost → Settings…** (⌘,), not in the workspace.
 
 Only options that `URLSession` can actually honor are exposed. No decorative toggles.
 
+## Install
+
+Apple Silicon, macOS 26+. First launch: right-click **Fastpost.app** and choose **Open**.
+
+### Homebrew
+
+```bash
+brew tap l-furquim/faspost https://github.com/l-furquim/faspost
+brew install --cask fastpost
+```
+
+### Disk image or installer
+
+Download `Fastpost-<version>.dmg` or `Fastpost-<version>.pkg` from the [GitHub Releases](https://github.com/l-furquim/faspost/releases). The DMG is drag-and-drop into `/Applications`. The PKG opens in Installer.app.
+
 ## Requirements
 
 - macOS 26+
 - Xcode 26+ to build from source
 
-Open `fastpost.xcodeproj` and run the **fastpost** scheme. Bundle ID is `furqas.fastpost`.
+Open `fastpost.xcodeproj` and run the **fastpost** scheme. The product is `Fastpost.app`. Bundle ID is `furqas.fastpost`.
