@@ -1,6 +1,6 @@
 cask "fastpost" do
-  version "0.0.0"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  version "1.0.0"
+  sha256 "5335b764ab25bfbce8130910bb16bbdaa906f2302ee9417c6f59c89ef6284051"
 
   url "https://github.com/l-furquim/faspost/releases/download/v#{version}/Fastpost-#{version}.dmg"
   name "Fastpost"
