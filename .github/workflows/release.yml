@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: macos-26
+    runs-on: macos-27
     env:
       APPLE_DEVELOPER_ID_P12: ${{ secrets.APPLE_DEVELOPER_ID_P12 }}
       APPLE_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
@@ -19,12 +19,12 @@ jobs:
       APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
       APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
     steps:
-      - name: Require macOS 26
+      - name: Require macOS 27
         run: |
           sw_vers
           major="$(sw_vers -productVersion | cut -d. -f1)"
-          if [ "$major" -lt 26 ]; then
-            echo "Need a macOS 26 GitHub-hosted runner or a self-hosted Mac. Got $(sw_vers -productVersion)."
+          if [ "$major" -lt 27 ]; then
+            echo "Need a macOS 27 GitHub-hosted runner or a self-hosted Mac. Got $(sw_vers -productVersion)."
             exit 1
           fi
 
