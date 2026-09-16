@@ -3,6 +3,7 @@ import SwiftUI
 
 struct WorkspaceSidebar: View {
     @Environment(AppSession.self) private var session
+    @State private var isFileDropTargeted = false
 
     var body: some View {
         @Bindable var session = session
@@ -22,13 +23,25 @@ struct WorkspaceSidebar: View {
                 ContentUnavailableView(
                     "No Requests",
                     systemImage: "tray",
-                    description: Text("Create a folder or request to start building this collection.")
+                    description: Text("Create a folder or request, or drop a Postman collection to import.")
                 )
-                .dropDestination(for: CollectionItemID.self) { ids, _ in
-                    guard let id = ids.first else { return false }
-                    return session.moveToRoot(id: id.rawValue)
-                }
+                .allowsHitTesting(false)
             }
+        }
+        .overlay {
+            SidebarFileDropCatcher(isTargeted: $isFileDropTargeted) { urls in
+                _ = session.importPostmanFiles(urls)
+            }
+            .id("sidebar-file-drop-catcher")
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                .padding(6)
+                .opacity(isFileDropTargeted ? 1 : 0)
+                .allowsHitTesting(false)
+                .animation(.smooth(duration: 0.12), value: isFileDropTargeted)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             SidebarFooter()
@@ -36,6 +49,9 @@ struct WorkspaceSidebar: View {
         .contextMenu {
             Button("New Request", systemImage: "plus") { session.beginCreate(.request) }
             Button("New Folder", systemImage: "folder.badge.plus") { session.beginCreate(.folder) }
+            Button("Import…", systemImage: AppCommandCatalog[.importPostman].systemImage) {
+                session.pickAndImportPostmanFiles()
+            }
             if RequestPasteboard.hasRequest {
                 Button("Paste Request", systemImage: AppCommandCatalog[.pasteRequest].systemImage) {
                     if let item = RequestPasteboard.peek() {
@@ -108,14 +124,20 @@ private struct SidebarItemNode: View {
             DisclosureGroup(isExpanded: expansion) {
                 SidebarItemGroup(items: item.item ?? [])
             } label: {
-                SidebarRow(item: item, isRenaming: session.renamingItemID == item.id)
+                SidebarRow(
+                    item: item,
+                    isRenaming: session.renamingItemID == item.id
+                )
                     .tag(item.id)
                     .onTapGesture(count: 2) {
                         session.toggleFolder(item.id)
                     }
             }
         } else {
-            SidebarRow(item: item, isRenaming: session.renamingItemID == item.id)
+            SidebarRow(
+                item: item,
+                isRenaming: session.renamingItemID == item.id
+            )
                 .tag(item.id)
         }
     }

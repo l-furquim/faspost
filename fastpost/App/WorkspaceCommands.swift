@@ -30,6 +30,11 @@ struct WorkspaceCommands: Commands {
                 session.pickAndOpenWorkspace()
             }
             .keyboardShortcut("o")
+
+            commandButton(.importPostman) {
+                session.pickAndImportPostmanFiles()
+            }
+            .disabled(!session.hasOpenWorkspace)
         }
 
         CommandGroup(after: .newItem) {

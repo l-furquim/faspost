@@ -1,18 +1,27 @@
 cask "fastpost" do
-  version "0.0.0"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  version "1.0.0"
+  sha256 "5335b764ab25bfbce8130910bb16bbdaa906f2302ee9417c6f59c89ef6284051"
 
-  url "https://github.com/l-furquim/faspost/releases/download/v#{version}/Fastpost-#{version}.dmg"
+  url "https://github.com/l-furquim/faspost/releases/download/v#{version}/Fastpost-#{version}.dmg",
+      verified: "github.com/l-furquim/faspost/"
   name "Fastpost"
   desc "Native macOS HTTP client"
   homepage "https://github.com/l-furquim/faspost"
 
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
   depends_on macos: ">= :tahoe"
+  depends_on arch: :arm64
 
   app "Fastpost.app"
 
   zap trash: [
+    "~/Library/Application Support/Fastpost",
     "~/Library/Preferences/furqas.fastpost.plist",
+    "~/Library/Saved Application State/furqas.fastpost.savedState",
   ]
 
   caveats <<~EOS

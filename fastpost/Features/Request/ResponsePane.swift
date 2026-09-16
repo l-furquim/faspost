@@ -40,13 +40,7 @@ private struct ReceivedResponseView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             ResponseStatusBar(exchange: exchange)
-            Picker("Section", selection: $pane) {
-                ForEach(ResponseSection.allCases) { section in
-                    Text(section.title).tag(section)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            GlassSegmentedPicker(selection: $pane, accessibilityLabel: "Section")
 
             switch pane {
             case .body:
@@ -74,7 +68,17 @@ private enum ResponseSection: String, CaseIterable, Identifiable {
         case .cookies: "Cookies"
         }
     }
+
+    var systemImage: String {
+        switch self {
+        case .body: "doc.plaintext"
+        case .headers: "list.bullet"
+        case .cookies: "circle.hexagongrid.fill"
+        }
+    }
 }
+
+extension ResponseSection: GlassSegmentOption {}
 
 struct ResponseStatusBar: View {
     let exchange: HTTPExchange

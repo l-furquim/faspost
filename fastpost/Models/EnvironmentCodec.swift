@@ -48,6 +48,21 @@ private struct PostmanEnvironmentFile: Codable {
         case values
         case scope = "_postman_variable_scope"
     }
+
+    init(id: String, name: String, values: [PostmanEnvironmentValue], scope: String?) {
+        self.id = id
+        self.name = name
+        self.values = values
+        self.scope = scope
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        name = try container.decode(String.self, forKey: .name)
+        values = container.decodeLossyArray(PostmanEnvironmentValue.self, forKey: .values)
+        scope = try container.decodeIfPresent(String.self, forKey: .scope)
+    }
 }
 
 private struct PostmanEnvironmentValue: Codable {
@@ -55,4 +70,26 @@ private struct PostmanEnvironmentValue: Codable {
     var value: String?
     var type: String?
     var enabled: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case key
+        case value
+        case type
+        case enabled
+    }
+
+    init(key: String, value: String?, type: String?, enabled: Bool?) {
+        self.key = key
+        self.value = value
+        self.type = type
+        self.enabled = enabled
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        key = JSONFlexible.string(from: container, forKey: .key) ?? ""
+        value = JSONFlexible.string(from: container, forKey: .value)
+        type = try container.decodeIfPresent(String.self, forKey: .type)
+        enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled)
+    }
 }

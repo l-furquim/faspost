@@ -1,5 +1,6 @@
-import Foundation
 import CoreTransferable
+import Foundation
+import UniformTypeIdentifiers
 
 struct Collection: Codable, Equatable, Hashable {
     var info: CollectionInfo
@@ -23,8 +24,8 @@ struct Collection: Codable, Equatable, Hashable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         info = try container.decode(CollectionInfo.self, forKey: .info)
-        item = try container.decodeIfPresent([CollectionItem].self, forKey: .item) ?? []
-        variable = try container.decodeIfPresent([Variable].self, forKey: .variable) ?? []
+        item = container.decodeLossyArray(CollectionItem.self, forKey: .item)
+        variable = container.decodeLossyArray(Variable.self, forKey: .variable)
     }
 
     static func empty(named name: String) -> Collection {
@@ -51,6 +52,21 @@ struct CollectionInfo: Codable, Equatable, Hashable {
         case schema
         case description
     }
+
+    init(postmanID: String, name: String, schema: String, description: String? = nil) {
+        self.postmanID = postmanID
+        self.name = name
+        self.schema = schema
+        self.description = description
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        postmanID = try container.decodeIfPresent(String.self, forKey: .postmanID) ?? UUID().uuidString
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
+        schema = try container.decodeIfPresent(String.self, forKey: .schema) ?? Collection.postmanV21Schema
+        description = JSONFlexible.description(from: container, forKey: .description)
+    }
 }
 
 struct CollectionItemID: Hashable, Codable, Sendable, Transferable {
@@ -61,8 +77,12 @@ struct CollectionItemID: Hashable, Codable, Sendable, Transferable {
     }
 
     static var transferRepresentation: some TransferRepresentation {
-        ProxyRepresentation(exporting: \.rawValue) { CollectionItemID($0) }
+        CodableRepresentation(contentType: .collectionItemID)
     }
+}
+
+extension UTType {
+    static let collectionItemID = UTType(exportedAs: "furqas.fastpost.collection-item-id")
 }
 
 struct CollectionItem: Identifiable, Codable, Equatable, Hashable {
@@ -86,6 +106,13 @@ struct CollectionItem: Identifiable, Codable, Equatable, Hashable {
         item?.count ?? 0
     }
 
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case item
+        case request
+    }
+
     init(
         id: String = UUID().uuidString,
         name: String,
@@ -101,9 +128,9 @@ struct CollectionItem: Identifiable, Codable, Equatable, Hashable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
-        name = try container.decode(String.self, forKey: .name)
-        item = try container.decodeIfPresent([CollectionItem].self, forKey: .item)
-        request = try container.decodeIfPresent(HTTPRequest.self, forKey: .request)
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
+        item = container.decodeLossyArrayIfPresent(CollectionItem.self, forKey: .item)
+        request = try? container.decode(HTTPRequest.self, forKey: .request)
     }
 
     static func folder(named name: String) -> CollectionItem {
@@ -139,6 +166,45 @@ struct HTTPRequest: Codable, Equatable, Hashable {
     var body: RequestBody?
     var auth: RequestAuth?
     var description: String?
+
+    enum CodingKeys: String, CodingKey {
+        case method
+        case header
+        case url
+        case body
+        case auth
+        case description
+    }
+
+    init(
+        method: String,
+        header: [HTTPHeader],
+        url: RequestURL,
+        body: RequestBody? = nil,
+        auth: RequestAuth? = nil,
+        description: String? = nil
+    ) {
+        self.method = method
+        self.header = header
+        self.url = url
+        self.body = body
+        self.auth = auth
+        self.description = description
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        method = JSONFlexible.string(from: container, forKey: .method) ?? "GET"
+        header = container.decodeLossyArray(HTTPHeader.self, forKey: .header)
+        if let url = try? container.decode(RequestURL.self, forKey: .url) {
+            self.url = url
+        } else {
+            url = .raw("")
+        }
+        body = try? container.decode(RequestBody.self, forKey: .body)
+        auth = try? container.decode(RequestAuth.self, forKey: .auth)
+        description = JSONFlexible.description(from: container, forKey: .description)
+    }
 
     var rawURL: String {
         get { url.rawValue }
@@ -210,12 +276,50 @@ struct HTTPHeader: Codable, Equatable, Hashable {
     var key: String
     var value: String
     var disabled: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case key
+        case value
+        case disabled
+    }
+
+    init(key: String, value: String, disabled: Bool? = nil) {
+        self.key = key
+        self.value = value
+        self.disabled = disabled
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        key = JSONFlexible.string(from: container, forKey: .key) ?? ""
+        value = JSONFlexible.string(from: container, forKey: .value) ?? ""
+        disabled = try container.decodeIfPresent(Bool.self, forKey: .disabled)
+    }
 }
 
 struct QueryParam: Codable, Equatable, Hashable {
     var key: String
     var value: String?
     var disabled: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case key
+        case value
+        case disabled
+    }
+
+    init(key: String, value: String? = nil, disabled: Bool? = nil) {
+        self.key = key
+        self.value = value
+        self.disabled = disabled
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        key = JSONFlexible.string(from: container, forKey: .key) ?? ""
+        value = JSONFlexible.string(from: container, forKey: .value)
+        disabled = try container.decodeIfPresent(Bool.self, forKey: .disabled)
+    }
 }
 
 enum RequestBodyMode: String, CaseIterable, Identifiable, Equatable, Hashable {
@@ -246,6 +350,25 @@ struct RequestBody: Codable, Equatable, Hashable {
     var mode: String?
     var raw: String?
     var urlencoded: [QueryParam]?
+
+    enum CodingKeys: String, CodingKey {
+        case mode
+        case raw
+        case urlencoded
+    }
+
+    init(mode: String? = nil, raw: String? = nil, urlencoded: [QueryParam]? = nil) {
+        self.mode = mode
+        self.raw = raw
+        self.urlencoded = urlencoded
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        mode = try container.decodeIfPresent(String.self, forKey: .mode)
+        raw = JSONFlexible.string(from: container, forKey: .raw)
+        urlencoded = container.decodeLossyArrayIfPresent(QueryParam.self, forKey: .urlencoded)
+    }
 
     var kind: RequestBodyMode {
         get {
@@ -295,6 +418,29 @@ struct RequestURLObject: Codable, Equatable, Hashable {
         case path
         case query
     }
+
+    init(
+        raw: String? = nil,
+        protocolName: String? = nil,
+        host: [String]? = nil,
+        path: [String]? = nil,
+        query: [QueryParam]? = nil
+    ) {
+        self.raw = raw
+        self.protocolName = protocolName
+        self.host = host
+        self.path = path
+        self.query = query
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        raw = JSONFlexible.string(from: container, forKey: .raw)
+        protocolName = JSONFlexible.string(from: container, forKey: .protocolName)
+        host = JSONFlexible.stringArray(from: container, forKey: .host)
+        path = JSONFlexible.stringArray(from: container, forKey: .path)
+        query = container.decodeLossyArrayIfPresent(QueryParam.self, forKey: .query)
+    }
 }
 
 enum RequestURL: Codable, Equatable, Hashable {
@@ -312,11 +458,19 @@ enum RequestURL: Codable, Equatable, Hashable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .raw("")
+            return
+        }
         if let string = try? container.decode(String.self) {
             self = .raw(string)
             return
         }
-        self = .structured(try container.decode(RequestURLObject.self))
+        if let object = try? container.decode(RequestURLObject.self) {
+            self = .structured(object)
+            return
+        }
+        self = .raw("")
     }
 
     func encode(to encoder: Encoder) throws {

@@ -1,4 +1,5 @@
 import Foundation
+import UniformTypeIdentifiers
 
 enum PersistenceStyle: Equatable {
     case immediate
@@ -176,6 +177,92 @@ final class AppSession {
             ) else { return }
             openWorkspace(at: url)
         }
+    }
+
+    func pickAndImportPostmanFiles() {
+        guard hasOpenWorkspace else { return }
+        Task {
+            let urls = await FilePicker.presentURLs(
+                message: String(localized: "Choose a Postman collection or environment."),
+                confirmTitle: String(localized: "Import"),
+                contentTypes: [.json],
+                allowsMultipleSelection: true
+            )
+            guard !urls.isEmpty else { return }
+            importPostmanFiles(urls)
+        }
+    }
+
+    @discardableResult
+    func importPostmanFiles(_ urls: [URL]) -> Bool {
+        guard hasOpenWorkspace else { return false }
+        finishRenameIfNeeded()
+
+        let files = urls.filter { !$0.hasDirectoryPath }
+        guard !files.isEmpty else { return false }
+
+        var importedAny = false
+        var importError: WorkspaceError?
+        for url in files {
+            do {
+                try importPostmanFile(at: url)
+                importedAny = true
+            } catch let error as WorkspaceError {
+                importError = error
+            } catch {
+                importError = .importFailed(error.localizedDescription)
+            }
+        }
+
+        if let importError {
+            lastError = importError
+        }
+        return importedAny || importError != nil
+    }
+
+    private func importPostmanFile(at url: URL) throws {
+        let data = try FilePicker.read(url)
+        switch try PostmanImporter.payload(from: data, fileName: url.lastPathComponent) {
+        case .collection(let imported):
+            importCollection(
+                imported,
+                fallbackName: PostmanImporter.collectionFallbackName(from: url.lastPathComponent)
+            )
+        case .environment(let imported):
+            importEnvironment(
+                imported,
+                fallbackName: PostmanImporter.environmentFallbackName(from: url.lastPathComponent)
+            )
+        }
+    }
+
+    private func importCollection(_ imported: Collection, fallbackName: String) {
+        var folder = PostmanImporter.importedFolder(from: imported, named: fallbackName)
+        folder.name = uniqueRootItemName(base: folder.name)
+        let mergedVariables = PostmanImporter.mergingVariables(
+            existing: collectionVariables,
+            imported: imported.variable
+        )
+
+        commit(.immediate) { collection in
+            _ = collection.item.insert(folder, parentID: nil)
+            collection.variable = mergedVariables
+        }
+        selectedItemID = folder.id
+        expandedFolderIDs.insert(folder.id)
+    }
+
+    private func importEnvironment(_ imported: WorkspaceEnvironment, fallbackName: String) {
+        let baseName = PostmanImporter.displayName(imported.name, fallback: fallbackName)
+        let uniqueName = uniqueEnvironmentName(base: baseName)
+        let environment = WorkspaceEnvironment(
+            name: uniqueName,
+            values: imported.values,
+            fileName: uniqueEnvironmentFileName(for: uniqueName)
+        )
+        environments.append(environment)
+        environments.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        persist(.immediate)
     }
 
     func openWorkspace(at url: URL) {
@@ -588,10 +675,17 @@ final class AppSession {
         }
     }
 
+    private func uniqueRootItemName(base: String) -> String {
+        uniqueName(base: base, existing: Set(collectionItems.map(\.name)))
+    }
+
     private func uniqueEnvironmentName(base: String) -> String {
+        uniqueName(base: base, existing: Set(environments.map(\.name)))
+    }
+
+    private func uniqueName(base: String, existing: Set<String>) -> String {
         var name = base
         var suffix = 2
-        let existing = Set(environments.map(\.name))
         while existing.contains(name) {
             name = "\(base) \(suffix)"
             suffix += 1

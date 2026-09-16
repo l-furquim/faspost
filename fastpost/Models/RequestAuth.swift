@@ -109,6 +109,25 @@ struct AuthAttribute: Codable, Equatable, Hashable {
     var key: String
     var value: String
     var type: String? = "string"
+
+    enum CodingKeys: String, CodingKey {
+        case key
+        case value
+        case type
+    }
+
+    init(key: String, value: String, type: String? = "string") {
+        self.key = key
+        self.value = value
+        self.type = type
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        key = JSONFlexible.string(from: container, forKey: .key) ?? ""
+        value = JSONFlexible.string(from: container, forKey: .value) ?? ""
+        type = try container.decodeIfPresent(String.self, forKey: .type) ?? "string"
+    }
 }
 
 enum AuthKind: String, CaseIterable, Identifiable {

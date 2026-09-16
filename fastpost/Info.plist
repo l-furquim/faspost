@@ -19,6 +19,16 @@
 			<key>UTTypeIdentifier</key>
 			<string>furqas.fastpost.request</string>
 		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Fastpost Collection Item</string>
+			<key>UTTypeIdentifier</key>
+			<string>furqas.fastpost.collection-item-id</string>
+		</dict>
 	</array>
 </dict>
 </plist>

@@ -75,6 +75,13 @@ brew tap l-furquim/faspost https://github.com/l-furquim/faspost
 brew install --cask fastpost
 ```
 
+Updates come through Homebrew, not from inside the app:
+
+```bash
+brew update
+brew upgrade --cask fastpost
+```
+
 ### Disk image or installer
 
 Download `Fastpost-<version>.dmg` or `Fastpost-<version>.pkg` from the [GitHub Releases](https://github.com/l-furquim/faspost/releases). The DMG is drag-and-drop into `/Applications`. The PKG opens in Installer.app.

@@ -29,15 +29,17 @@ extension Variable: Codable {
         case value
         case type
         case disabled
+        case secret
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
-        key = try container.decodeIfPresent(String.self, forKey: .key) ?? ""
-        value = try container.decodeIfPresent(String.self, forKey: .value) ?? ""
+        key = JSONFlexible.string(from: container, forKey: .key) ?? ""
+        value = JSONFlexible.string(from: container, forKey: .value) ?? ""
         let type = try container.decodeIfPresent(String.self, forKey: .type)
-        isSecret = type == "secret"
+        let secretFlag = try container.decodeIfPresent(Bool.self, forKey: .secret) == true
+        isSecret = type == "secret" || secretFlag
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .disabled) != true
     }
 

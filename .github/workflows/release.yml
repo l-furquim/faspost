@@ -93,6 +93,7 @@ jobs:
           version="${{ steps.version.outputs.version }}"
           tag="${{ steps.version.outputs.tag }}"
           notes="macOS 26+, Apple Silicon."
+          notes+=$'\n\nHomebrew: `brew update && brew upgrade --cask fastpost`'
           if [ "${signed:-false}" != "true" ]; then
             notes+=$'\n\nThis build is not Developer ID signed or notarized. First launch: right-click Fastpost.app and choose Open, or run `xattr -cr /Applications/Fastpost.app`.'
           fi
@@ -107,9 +108,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version="${{ steps.version.outputs.version }}"
-          sha="$(shasum -a 256 "dist/Fastpost-${version}.dmg" | awk '{ print $1 }')"
+          dmg="dist/Fastpost-${version}.dmg"
+          sha="$(shasum -a 256 "$dmg" | awk '{ print $1 }')"
+          echo "Cask sha256 $sha for $dmg"
           git fetch origin main
           git checkout -B main origin/main
+          git pull --rebase origin main
           scripts/update-cask.sh "$version" "$sha"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

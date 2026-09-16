@@ -3,6 +3,7 @@ import SwiftUI
 enum AppCommandID: String, CaseIterable, Identifiable, Hashable {
     case newRequest
     case newFolder
+    case importPostman
     case send
     case duplicateRequest
     case copyRequest
@@ -33,6 +34,7 @@ enum AppCommandCatalog {
     static let all: [AppCommandDefinition] = [
         AppCommandDefinition(id: .newRequest, title: "New Request", systemImage: "plus", defaultKey: "n", defaultModifiers: .command),
         AppCommandDefinition(id: .newFolder, title: "New Folder", systemImage: "folder.badge.plus", defaultKey: "n", defaultModifiers: [.command, .shift]),
+        AppCommandDefinition(id: .importPostman, title: "Import…", systemImage: "square.and.arrow.down"),
         AppCommandDefinition(id: .send, title: "Send Request", systemImage: "paperplane", defaultKey: "return", defaultModifiers: .command),
         AppCommandDefinition(id: .duplicateRequest, title: "Duplicate", systemImage: "plus.square.on.square", defaultKey: "d", defaultModifiers: .command),
         AppCommandDefinition(id: .copyRequest, title: "Copy Request", systemImage: "doc.on.doc"),
@@ -63,6 +65,8 @@ struct AppCommandPerformer {
             session.beginCreate(.request)
         case .newFolder:
             session.beginCreate(.folder)
+        case .importPostman:
+            session.pickAndImportPostmanFiles()
         case .send:
             guard let itemID = session.selectedItemID, let request = session.selectedRequest else { return }
             runtime.toggleSend(id: itemID, request: session.resolved(request))
@@ -89,7 +93,7 @@ struct AppCommandPerformer {
 
     func isEnabled(_ id: AppCommandID) -> Bool {
         switch id {
-        case .newRequest, .newFolder, .environments, .commandPalette:
+        case .newRequest, .newFolder, .importPostman, .environments, .commandPalette:
             session.hasOpenWorkspace
         case .send, .duplicateRequest, .copyRequest, .copyAsCurl:
             session.selectedRequest != nil

@@ -42,6 +42,7 @@ enum WorkspaceError: LocalizedError, Equatable {
     case invalidWorkspace
     case folderMissing
     case saveFailed
+    case importFailed(String? = nil)
 
     var errorDescription: String? {
         switch self {
@@ -59,6 +60,12 @@ enum WorkspaceError: LocalizedError, Equatable {
             String(localized: "This workspace folder is no longer available.")
         case .saveFailed:
             String(localized: "Fastpost could not save this collection.")
+        case .importFailed(let detail):
+            if let detail, !detail.isEmpty {
+                String(localized: "This file is not a Postman collection or environment. \(detail)")
+            } else {
+                String(localized: "This file is not a Postman collection or environment.")
+            }
         }
     }
 }

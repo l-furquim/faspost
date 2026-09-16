@@ -7,18 +7,32 @@ enum FilePicker {
         confirmTitle: String,
         contentTypes: [UTType]
     ) async -> URL? {
+        await presentURLs(
+            message: message,
+            confirmTitle: confirmTitle,
+            contentTypes: contentTypes,
+            allowsMultipleSelection: false
+        ).first
+    }
+
+    static func presentURLs(
+        message: String,
+        confirmTitle: String,
+        contentTypes: [UTType],
+        allowsMultipleSelection: Bool
+    ) async -> [URL] {
         await withCheckedContinuation { continuation in
             let panel = NSOpenPanel()
             panel.canChooseFiles = true
             panel.canChooseDirectories = false
             panel.canCreateDirectories = false
-            panel.allowsMultipleSelection = false
+            panel.allowsMultipleSelection = allowsMultipleSelection
             panel.allowedContentTypes = contentTypes
             panel.message = message
             panel.prompt = confirmTitle
 
             let finish: (NSApplication.ModalResponse) -> Void = { response in
-                continuation.resume(returning: response == .OK ? panel.url : nil)
+                continuation.resume(returning: response == .OK ? panel.urls : [])
             }
 
             if let window = NSApp.keyWindow ?? NSApp.windows.first(where: \.isVisible) {
