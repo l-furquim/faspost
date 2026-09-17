@@ -109,6 +109,26 @@ final class AppSession {
         set { updateSelectedRequest { $0.setQueryParams(newValue) } }
     }
 
+    var selectedExtractors: [ResponseExtractor] {
+        get { selectedItem?.responseExtractors ?? [] }
+        set {
+            updateSelectedItem { item in
+                guard item.responseExtractors != newValue else { return }
+                item.responseExtractors = newValue
+            }
+        }
+    }
+
+    var selectedTestScript: String {
+        get { selectedItem?.userTestScriptText ?? "" }
+        set {
+            updateSelectedItem { item in
+                guard item.userTestScriptText != newValue else { return }
+                item.setUserTestScript(newValue)
+            }
+        }
+    }
+
     var activeEnvironmentID: UUID? {
         currentWorkspace?.activeEnvironmentID
     }
@@ -489,6 +509,22 @@ final class AppSession {
         return didMove
     }
 
+    func applySidebarReorder(sources: [String], toParent parentID: String?, beforeID: String?) {
+        for id in sources {
+            if id == parentID { continue }
+            if let parentID, collectionItems.isDescendant(parentID, of: id) { continue }
+            if let beforeID, collectionItems.isDescendant(beforeID, of: id) { continue }
+
+            if let beforeID, let target = collection?.item.firstItem(id: beforeID) {
+                _ = move(id: id, before: target)
+            } else if let parentID, let parent = collection?.item.firstItem(id: parentID) {
+                _ = move(id: id, onto: parent)
+            } else {
+                _ = moveToRoot(id: id)
+            }
+        }
+    }
+
     func present(_ sheet: WorkspaceSheet) {
         presentedSheet = sheet
     }
@@ -581,6 +617,13 @@ final class AppSession {
             variables.append(Variable(key: name, value: value))
         }
         commit(.immediate) { $0.variable = variables }
+    }
+
+    func updateSelectedItem(_ transform: (inout CollectionItem) -> Void) {
+        guard let selectedItemID else { return }
+        commit(.debounced) { collection in
+            _ = collection.item.updateItem(id: selectedItemID, transform: transform)
+        }
     }
 
     func updateSelectedRequest(_ transform: (inout HTTPRequest) -> Void) {
@@ -835,5 +878,84 @@ extension AppSession {
         let defaults = UserDefaults(suiteName: suiteName) ?? .standard
         defaults.removePersistentDomain(forName: suiteName)
         return AppSession(store: WorkspaceStore(defaults: defaults))
+    }
+}
+
+extension AppSession: PostResponseAutomation {
+    func program(forRequestID id: String) -> PostResponseProgram {
+        let item = collection?.item.firstItem(id: id)
+        var scripts: [String] = item?.testScriptSources ?? []
+        for ancestorID in collection?.item.ancestorIDs(of: id) ?? [] {
+            if let folder = collection?.item.firstItem(id: ancestorID) {
+                scripts.append(contentsOf: folder.testScriptSources)
+            }
+        }
+        scripts.append(contentsOf: collection?.testScriptSources ?? [])
+
+        return PostResponseProgram(
+            extractors: item?.responseExtractors ?? [],
+            scripts: scripts,
+            environmentValues: dictionary(from: activeEnvironment?.values ?? []),
+            collectionValues: dictionary(from: collectionVariables),
+            hasEnvironment: activeEnvironmentID != nil
+        )
+    }
+
+    func apply(mutations: [VariableMutation]) {
+        guard !mutations.isEmpty else { return }
+        var didChangeCollection = false
+        var collectionValues = collection?.variable ?? []
+
+        for mutation in mutations {
+            switch mutation {
+            case .setEnvironment(let key, let value):
+                upsertEnvironmentVariable(key, value: value)
+            case .unsetEnvironment(let key):
+                removeEnvironmentVariable(key)
+            case .setCollection(let key, let value):
+                upsert(key, value: value, in: &collectionValues)
+                didChangeCollection = true
+            case .unsetCollection(let key):
+                collectionValues.removeAll { $0.key == key }
+                didChangeCollection = true
+            }
+        }
+
+        if didChangeCollection {
+            commit(.immediate) { $0.variable = collectionValues }
+        } else {
+            persist(.immediate)
+        }
+    }
+
+    private func dictionary(from variables: [Variable]) -> [String: String] {
+        var values: [String: String] = [:]
+        for variable in variables where variable.isEnabled && !variable.key.isEmpty {
+            values[variable.key] = variable.value
+        }
+        return values
+    }
+
+    private func upsertEnvironmentVariable(_ key: String, value: String) {
+        guard let environmentID = activeEnvironmentID,
+              let index = environments.firstIndex(where: { $0.id == environmentID })
+        else { return }
+        upsert(key, value: value, in: &environments[index].values)
+    }
+
+    private func removeEnvironmentVariable(_ key: String) {
+        guard let environmentID = activeEnvironmentID,
+              let index = environments.firstIndex(where: { $0.id == environmentID })
+        else { return }
+        environments[index].values.removeAll { $0.key == key }
+    }
+
+    private func upsert(_ key: String, value: String, in variables: inout [Variable]) {
+        if let existing = variables.firstIndex(where: { $0.key == key }) {
+            variables[existing].value = value
+            variables[existing].isEnabled = true
+        } else {
+            variables.append(Variable(key: key, value: value))
+        }
     }
 }

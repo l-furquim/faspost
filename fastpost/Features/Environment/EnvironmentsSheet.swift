@@ -93,24 +93,40 @@ struct EnvironmentsSheet: View {
                     }
                 }
             }
-            .listStyle(.inset)
+            .listStyle(.plain)
 
             Divider()
-            HStack {
+            HStack(spacing: 8) {
                 Button("New Environment", systemImage: "plus") {
-                    let existing = Set(session.environments.map(\.id))
-                    session.createEnvironment()
-                    if let created = session.environments.first(where: { !existing.contains($0.id) }) {
-                        selection = .environment(created.id)
-                        renamingID = created.id
-                    }
+                    createEnvironment()
                 }
                 .help("New Environment")
+                Button("Delete Environment", systemImage: "minus") {
+                    if case .environment(let id) = selection {
+                        pendingDeleteID = id
+                    }
+                }
+                .help("Delete Environment")
+                .disabled(!canDeleteSelection)
                 Spacer(minLength: 0)
             }
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
             .padding(10)
+        }
+    }
+
+    private var canDeleteSelection: Bool {
+        if case .environment = selection { return true }
+        return false
+    }
+
+    private func createEnvironment() {
+        let existing = Set(session.environments.map(\.id))
+        session.createEnvironment()
+        if let created = session.environments.first(where: { !existing.contains($0.id) }) {
+            selection = .environment(created.id)
+            renamingID = created.id
         }
     }
 
@@ -173,6 +189,18 @@ private struct EnvironmentEditorDetail: View {
     let target: EnvironmentEditorTarget
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            Divider()
+            variables
+                .padding(20)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    @ViewBuilder
+    private var header: some View {
         Form {
             switch target {
             case .collection:
@@ -182,7 +210,6 @@ private struct EnvironmentEditorDetail: View {
                 } header: {
                     Text("Collection Variables")
                 }
-                VariablesForm(variables: collectionBinding)
             case .environment(let id):
                 if let environment = session.environments.first(where: { $0.id == id }) {
                     Section {
@@ -191,18 +218,30 @@ private struct EnvironmentEditorDetail: View {
                     } header: {
                         Text(environment.name)
                     }
-                    VariablesForm(variables: environmentBinding(id))
-                } else {
-                    ContentUnavailableView(
-                        "Environment Missing",
-                        systemImage: "server.rack",
-                        description: Text("Select another environment.")
-                    )
                 }
             }
         }
         .formStyle(.grouped)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .scrollDisabled(true)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder
+    private var variables: some View {
+        switch target {
+        case .collection:
+            VariablesTable(variables: collectionBinding)
+        case .environment(let id):
+            if session.environments.contains(where: { $0.id == id }) {
+                VariablesTable(variables: environmentBinding(id))
+            } else {
+                ContentUnavailableView(
+                    "Environment Missing",
+                    systemImage: "server.rack",
+                    description: Text("Select another environment.")
+                )
+            }
+        }
     }
 
     private var collectionBinding: Binding<[Variable]> {
@@ -220,39 +259,60 @@ private struct EnvironmentEditorDetail: View {
     }
 }
 
-private struct VariablesForm: View {
+private struct VariablesTable: View {
     @Binding var variables: [Variable]
 
     var body: some View {
-        Section("Variables") {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Variables")
+                .font(.headline)
             ForEach($variables) { $variable in
-                LabeledContent {
-                    VStack(alignment: .leading, spacing: 8) {
-                        TextField("Key", text: $variable.key)
-                        if variable.isSecret {
-                            RevealableSecureField("Value", text: $variable.value)
-                        } else {
-                            TextField("Value", text: $variable.value)
-                        }
-                        HStack {
-                            Toggle("Secret", isOn: $variable.isSecret)
-                            Spacer(minLength: 0)
-                            Button("Remove", systemImage: "trash", role: .destructive) {
-                                variables.removeAll { $0.id == variable.id }
-                            }
-                            .labelStyle(.iconOnly)
-                            .buttonStyle(.borderless)
-                        }
-                    }
-                    .frame(maxWidth: 380, alignment: .leading)
-                } label: {
-                    Toggle("Enabled", isOn: $variable.isEnabled)
+                VariableRowView(variable: $variable) {
+                    variables.removeAll { $0.id == variable.id }
                 }
             }
 
             Button("Add Variable", systemImage: "plus") {
                 variables.append(Variable())
             }
+            .buttonStyle(.borderless)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+private struct VariableRowView: View {
+    @Binding var variable: Variable
+    var onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Toggle("Enabled", isOn: $variable.isEnabled)
+                .toggleStyle(.checkbox)
+                .labelsHidden()
+                .help("Include this variable")
+            TextField("Key", text: $variable.key)
+                .textFieldStyle(.roundedBorder)
+            valueField
+            Button(variable.isSecret ? "Make Visible" : "Make Secret", systemImage: variable.isSecret ? "lock.fill" : "lock.open") {
+                variable.isSecret.toggle()
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help(variable.isSecret ? "Secret variable" : "Visible variable")
+            Button("Remove", systemImage: "minus.circle", role: .destructive, action: onDelete)
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+        }
+    }
+
+    @ViewBuilder
+    private var valueField: some View {
+        if variable.isSecret {
+            RevealableSecureField("Value", text: $variable.value, usesVariables: true, layout: .compact)
+        } else {
+            VariableTextField(text: $variable.value, placeholder: "Value")
         }
     }
 }

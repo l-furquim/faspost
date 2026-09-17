@@ -3,9 +3,13 @@ import Foundation
 @Observable
 final class RequestRuntime {
     var states: [String: RequestRunState] = [:]
+    var scriptResults: [String: PostResponseResult] = [:]
 
     @ObservationIgnored
     var certificates: ClientCertificateStore?
+
+    @ObservationIgnored
+    weak var automation: (any PostResponseAutomation)?
 
     @ObservationIgnored
     private var tasks: [String: Task<Void, Never>] = [:]
@@ -26,6 +30,11 @@ final class RequestRuntime {
         return states[id] ?? .idle
     }
 
+    func scriptResult(for id: String?) -> PostResponseResult? {
+        guard let id else { return nil }
+        return scriptResults[id]
+    }
+
     var isSendingSelected: Bool {
         false
     }
@@ -38,6 +47,7 @@ final class RequestRuntime {
     func send(id: String, request: HTTPRequest) {
         cancel(id, markCancelled: false)
         states[id] = .sending
+        scriptResults[id] = nil
         tasks[id] = Task {
             let client: HTTPClient
             if let clientOverride {
@@ -57,13 +67,68 @@ final class RequestRuntime {
             let result = await client.send(request)
             guard !Task.isCancelled else { return }
             switch result {
-            case .success(let exchange):
-                states[id] = .received(exchange)
+            case .success(let outcome):
+                await runPostResponse(id: id, outcome: outcome)
             case .failure(let failure):
                 states[id] = .failed(failure)
             }
             tasks[id] = nil
         }
+    }
+
+    private func runPostResponse(id: String, outcome: HTTPSendOutcome) async {
+        guard let automation, !Task.isCancelled else {
+            states[id] = .received(outcome.exchange)
+            return
+        }
+
+        let program = automation.program(forRequestID: id)
+        guard !program.isEmpty else {
+            states[id] = .received(outcome.exchange)
+            return
+        }
+
+        let exchange = outcome.exchange
+        let rawBody = outcome.rawBody
+        let extracted = await Task.detached(priority: .userInitiated) {
+            ResponseExtractorRunner.run(
+                extractors: program.extractors,
+                exchange: exchange,
+                rawBody: rawBody,
+                hasEnvironment: program.hasEnvironment
+            )
+        }.value
+
+        var result = PostResponseResult(extractorResults: extracted.results)
+        var mutations = extracted.mutations
+
+        if !program.scripts.isEmpty {
+            let environmentValues = program.environmentValues
+            let collectionValues = program.collectionValues
+            let hasEnvironment = program.hasEnvironment
+            let scripts = program.scripts
+            let scriptOutcome = await Task.detached(priority: .userInitiated) {
+                PostmanScriptRunner.run(
+                    scripts: scripts,
+                    exchange: exchange,
+                    rawBody: rawBody,
+                    environmentValues: environmentValues,
+                    collectionValues: collectionValues,
+                    hasEnvironment: hasEnvironment
+                )
+            }.value
+            result.tests = scriptOutcome.result.tests
+            result.logs = scriptOutcome.result.logs
+            result.errorMessage = scriptOutcome.result.errorMessage
+            mutations.append(contentsOf: scriptOutcome.mutations)
+        }
+
+        guard !Task.isCancelled else { return }
+        if !mutations.isEmpty {
+            automation.apply(mutations: mutations)
+        }
+        scriptResults[id] = result
+        states[id] = .received(outcome.exchange)
     }
 
     private func resolveClient(for request: HTTPRequest) async -> Result<HTTPClient, HTTPTransportFailure> {
@@ -121,6 +186,13 @@ extension RequestRuntime {
                 finalURL: URL(string: "https://api.example.com/health")!,
                 isTruncated: false
             )
+        )
+        runtime.scriptResults["preview-ok"] = PostResponseResult(
+            extractorResults: [
+                ExtractorRunResult(id: "token", variableKey: "token", value: "abc", isSuccess: true, message: "Saved token")
+            ],
+            tests: [ScriptTestResult(id: "status", name: "Status is 200", passed: true, message: nil)],
+            logs: [ScriptLogLine(id: "log", level: .log, text: "token saved")]
         )
         return runtime
     }

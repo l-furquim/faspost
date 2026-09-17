@@ -4,19 +4,24 @@ import SwiftUI
 struct WorkspaceSidebar: View {
     @Environment(AppSession.self) private var session
     @State private var isFileDropTargeted = false
+    @State private var draggingItemID: String?
 
     var body: some View {
         @Bindable var session = session
 
         List(selection: $session.selectedItemID) {
-            SidebarItemGroup(items: session.collectionItems)
+            SidebarItemGroup(items: session.collectionItems, draggingItemID: draggingItemID)
         }
         .listStyle(.sidebar)
         .appThemeSidebar()
         .navigationTitle(session.currentWorkspace?.name ?? "Fastpost")
         .dropDestination(for: CollectionItemID.self) { ids, _ in
-            guard let id = ids.first else { return false }
-            return session.moveToRoot(id: id.rawValue)
+            guard let id = ids.first else { return }
+            _ = session.moveToRoot(id: id.rawValue)
+        }
+        .dragConfiguration(DragConfiguration(allowMove: true))
+        .onDragSessionUpdated { drag in
+            updateDraggingItem(from: drag)
         }
         .overlay {
             if session.collectionItems.isEmpty, session.renamingItemID == nil {
@@ -103,14 +108,31 @@ struct WorkspaceSidebar: View {
             ? String(localized: "Delete Folder?")
             : String(localized: "Delete Request?")
     }
+
+    private func updateDraggingItem(from drag: DragSession) {
+        switch drag.phase {
+        case .initial, .active:
+            guard let next = drag.draggedItemIDs(for: CollectionItemID.self).first?.rawValue else {
+                return
+            }
+            if draggingItemID != next {
+                draggingItemID = next
+            }
+        case .ended, .dataTransferCompleted:
+            if draggingItemID != nil {
+                draggingItemID = nil
+            }
+        }
+    }
 }
 
 private struct SidebarItemGroup: View {
     let items: [CollectionItem]
+    let draggingItemID: String?
 
     var body: some View {
         ForEach(items) { item in
-            SidebarItemNode(item: item)
+            SidebarItemNode(item: item, draggingItemID: draggingItemID)
         }
     }
 }
@@ -118,27 +140,27 @@ private struct SidebarItemGroup: View {
 private struct SidebarItemNode: View {
     @Environment(AppSession.self) private var session
     let item: CollectionItem
+    let draggingItemID: String?
 
     var body: some View {
         if item.isFolder {
             DisclosureGroup(isExpanded: expansion) {
-                SidebarItemGroup(items: item.item ?? [])
+                SidebarItemGroup(items: item.item ?? [], draggingItemID: draggingItemID)
             } label: {
                 SidebarRow(
                     item: item,
-                    isRenaming: session.renamingItemID == item.id
+                    isRenaming: session.renamingItemID == item.id,
+                    draggingItemID: draggingItemID
                 )
-                    .tag(item.id)
-                    .onTapGesture(count: 2) {
-                        session.toggleFolder(item.id)
-                    }
+                .tag(item.id)
             }
         } else {
             SidebarRow(
                 item: item,
-                isRenaming: session.renamingItemID == item.id
+                isRenaming: session.renamingItemID == item.id,
+                draggingItemID: draggingItemID
             )
-                .tag(item.id)
+            .tag(item.id)
         }
     }
 
@@ -161,6 +183,7 @@ struct SidebarRow: View {
     @Environment(\.appTheme) private var theme
     let item: CollectionItem
     let isRenaming: Bool
+    var draggingItemID: String?
 
     @State private var dropHint = SidebarDropHint.none
     @State private var draftName = ""
@@ -194,16 +217,19 @@ struct SidebarRow: View {
         .padding(.leading, 6)
         .help(item.name.isEmpty ? item.defaultName : item.name)
         .padding(.vertical, 2)
+        .opacity(draggingItemID == item.id ? 0.4 : 1)
         .background { dropBackground }
-        .overlay { dropOverlay }
+        .overlay { dropOverlay.allowsHitTesting(false) }
+        .contentShape(.rect)
         .contextMenu { rowContextMenu }
         .draggable(CollectionItemID(item.id)) {
             Label(item.name.isEmpty ? item.defaultName : item.name, systemImage: item.isFolder ? "folder" : "doc")
         }
-        .dropDestination(for: CollectionItemID.self) { ids, location in
-            performDrop(ids: ids, location: location)
-        } isTargeted: { targeted in
-            dropHint = targeted ? (item.isFolder ? .into : .after) : .none
+        .dropDestination(for: CollectionItemID.self) { ids, dropSession in
+            performDrop(ids: ids, location: dropSession.location, size: dropSession.size)
+        }
+        .onDropSessionUpdated { dropSession in
+            updateDropHint(from: dropSession)
         }
     }
 
@@ -218,8 +244,6 @@ struct SidebarRow: View {
     @ViewBuilder
     private var dropOverlay: some View {
         switch dropHint {
-        case .none:
-            EmptyView()
         case .into:
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .strokeBorder(Color.accentColor, lineWidth: 1.5)
@@ -228,6 +252,7 @@ struct SidebarRow: View {
                 Capsule()
                     .fill(Color.accentColor)
                     .frame(height: 2)
+                    .padding(.horizontal, 8)
                 Spacer(minLength: 0)
             }
         case .after:
@@ -236,7 +261,10 @@ struct SidebarRow: View {
                 Capsule()
                     .fill(Color.accentColor)
                     .frame(height: 2)
+                    .padding(.horizontal, 8)
             }
+        case .none:
+            EmptyView()
         }
     }
 
@@ -294,20 +322,48 @@ struct SidebarRow: View {
         theme.method.color(for: item.method ?? .get)
     }
 
-    private func performDrop(ids: [CollectionItemID], location: CGPoint) -> Bool {
-        guard let dragged = ids.first, session.canMove(id: dragged.rawValue, onto: item) else {
-            return false
+    private func updateDropHint(from dropSession: DropSession) {
+        let next: SidebarDropHint
+        switch dropSession.phase {
+        case .entering, .active:
+            next = hint(at: dropSession.location, size: dropSession.size, current: dropHint)
+        case .exiting, .ended, .dataTransferCompleted:
+            next = .none
         }
-        if item.isFolder, location.y > 7, location.y < 18 {
-            return session.move(id: dragged.rawValue, onto: item)
+        if dropHint != next {
+            dropHint = next
         }
-        if location.y < 11 {
-            return session.move(id: dragged.rawValue, before: item)
-        }
+    }
+
+    private func hint(at location: CGPoint, size: CGSize, current: SidebarDropHint) -> SidebarDropHint {
+        let height = max(size.height, 24)
+        let y = location.y
         if item.isFolder {
-            return session.move(id: dragged.rawValue, onto: item)
+            let edge = max(6, height * 0.22)
+            let beforeLimit = current == .before ? edge + 4 : edge
+            let afterLimit = current == .after ? height - edge - 4 : height - edge
+            if y < beforeLimit { return .before }
+            if y > afterLimit { return .after }
+            return .into
         }
-        return session.move(id: dragged.rawValue, onto: item)
+        let midpoint = height / 2
+        let split = current == .before ? midpoint + 4 : midpoint - 4
+        return y < split ? .before : .after
+    }
+
+    private func performDrop(ids: [CollectionItemID], location: CGPoint, size: CGSize) {
+        dropHint = .none
+        guard let dragged = ids.first, session.canMove(id: dragged.rawValue, onto: item) else {
+            return
+        }
+        switch hint(at: location, size: size, current: .none) {
+        case .before:
+            _ = session.move(id: dragged.rawValue, before: item)
+        case .into, .none:
+            _ = session.move(id: dragged.rawValue, onto: item)
+        case .after:
+            _ = session.move(id: dragged.rawValue, onto: item)
+        }
     }
 
     private func selectAllText() {

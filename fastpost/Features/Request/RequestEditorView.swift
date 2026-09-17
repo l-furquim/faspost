@@ -29,6 +29,7 @@ enum RequestPane: String, CaseIterable, Identifiable {
     case authorization
     case headers
     case body
+    case scripts
 
     var id: String { rawValue }
 
@@ -38,6 +39,7 @@ enum RequestPane: String, CaseIterable, Identifiable {
         case .authorization: "Authorization"
         case .headers: "Headers"
         case .body: "Body"
+        case .scripts: "Scripts"
         }
     }
 
@@ -47,6 +49,7 @@ enum RequestPane: String, CaseIterable, Identifiable {
         case .authorization: "lock.fill"
         case .headers: "list.bullet"
         case .body: "doc.plaintext"
+        case .scripts: "hammer"
         }
     }
 }
@@ -63,6 +66,7 @@ private struct RequestEditorContent: View {
     @SceneStorage("request.responsePaneHeight") private var responsePaneHeight = 280.0
     @State private var headerRows: [KeyValueRow] = []
     @State private var paramRows: [KeyValueRow] = []
+    @State private var isSyncingParamsFromURL = false
 
     var body: some View {
         @Bindable var session = session
@@ -107,7 +111,7 @@ private struct RequestEditorContent: View {
             }
             .padding(20)
         } bottom: {
-            ResponsePane(state: runtime.state(for: item.id))
+            ResponsePane(state: runtime.state(for: item.id), scriptResult: runtime.scriptResult(for: item.id))
         }
         .onAppear(perform: reloadDrafts)
         .onChange(of: item.id) { _, _ in
@@ -117,6 +121,10 @@ private struct RequestEditorContent: View {
             session.selectedHeaders = newRows.map(\.header)
         }
         .onChange(of: paramRows) { _, newRows in
+            if isSyncingParamsFromURL {
+                isSyncingParamsFromURL = false
+                return
+            }
             let params = newRows.map(\.queryParam)
             if session.selectedQueryParams != params {
                 session.selectedQueryParams = params
@@ -145,6 +153,8 @@ private struct RequestEditorContent: View {
             KeyValueTable(rows: $headerRows, keyPlaceholder: "Header", valuePlaceholder: "Value")
         case .body:
             RequestBodyEditor(itemID: item.id)
+        case .scripts:
+            ScriptsEditorView(itemID: item.id)
         }
     }
 
@@ -196,9 +206,9 @@ private struct RequestEditorContent: View {
             }
         }
         if next.isEmpty { next = [KeyValueRow()] }
-        if next != paramRows {
-            paramRows = next
-        }
+        guard next != paramRows else { return }
+        isSyncingParamsFromURL = true
+        paramRows = next
     }
 }
 

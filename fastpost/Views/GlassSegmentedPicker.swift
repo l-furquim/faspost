@@ -32,14 +32,15 @@ struct GlassSegmentedPicker<Option: GlassSegmentOption>: View {
             .pickerStyle(.tabs)
             .labelsHidden()
             .fixedSize(horizontal: true, vertical: false)
-            .controlSize(.small)
+            .controlSize(.regular)
+            .buttonBorderShape(.capsule)
             Spacer(minLength: 0)
         }
         .accessibilityLabel(accessibilityLabel)
     }
 
     private var glassTabBar: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             ForEach(Array(Option.allCases)) { option in
                 GlassTabButton(
                     option: option,
@@ -50,7 +51,8 @@ struct GlassSegmentedPicker<Option: GlassSegmentOption>: View {
                 }
             }
         }
-        .padding(4)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 6)
         .glassEffect(.regular, in: .capsule)
         .animation(.smooth, value: selection)
         .accessibilityElement(children: .contain)
@@ -83,9 +85,9 @@ private struct GlassTabButton<Option: GlassSegmentOption>: View {
             }
             .font(.callout.weight(isSelected ? .semibold : .regular))
             .foregroundStyle(isSelected ? .primary : .secondary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .contentShape(.rect)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .contentShape(.capsule)
         }
         .buttonStyle(.plain)
         .background {

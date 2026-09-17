@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ResponsePane: View {
     let state: RequestRunState
+    var scriptResult: PostResponseResult? = nil
 
     var body: some View {
         ZStack {
@@ -26,7 +27,7 @@ struct ResponsePane: View {
                     description: Text(failure.message)
                 )
             case .received(let exchange):
-                ReceivedResponseView(exchange: exchange)
+                ReceivedResponseView(exchange: exchange, scriptResult: scriptResult)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -35,6 +36,7 @@ struct ResponsePane: View {
 
 private struct ReceivedResponseView: View {
     let exchange: HTTPExchange
+    var scriptResult: PostResponseResult?
     @State private var pane = ResponseSection.body
 
     var body: some View {
@@ -49,6 +51,8 @@ private struct ReceivedResponseView: View {
                 ResponseHeadersView(headers: exchange.headers)
             case .cookies:
                 ResponseCookiesView(cookies: exchange.cookies)
+            case .scripts:
+                ResponseScriptsView(result: scriptResult)
             }
         }
         .padding(16)
@@ -57,7 +61,7 @@ private struct ReceivedResponseView: View {
 }
 
 private enum ResponseSection: String, CaseIterable, Identifiable {
-    case body, headers, cookies
+    case body, headers, cookies, scripts
 
     var id: String { rawValue }
 
@@ -66,6 +70,7 @@ private enum ResponseSection: String, CaseIterable, Identifiable {
         case .body: "Body"
         case .headers: "Headers"
         case .cookies: "Cookies"
+        case .scripts: "Scripts"
         }
     }
 
@@ -74,6 +79,7 @@ private enum ResponseSection: String, CaseIterable, Identifiable {
         case .body: "doc.plaintext"
         case .headers: "list.bullet"
         case .cookies: "circle.hexagongrid.fill"
+        case .scripts: "hammer"
         }
     }
 }
@@ -221,6 +227,102 @@ private struct ResponseCookiesView: View {
     }
 }
 
+private struct ResponseScriptsView: View {
+    @Environment(\.appTheme) private var theme
+    var result: PostResponseResult?
+
+    var body: some View {
+        if let result, !result.isEmpty {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if !result.extractorResults.isEmpty {
+                        resultSection("Extractors") {
+                            ForEach(result.extractorResults) { extractor in
+                                labeledResult(
+                                    title: extractor.variableKey,
+                                    detail: extractor.value ?? extractor.message,
+                                    success: extractor.isSuccess
+                                )
+                            }
+                        }
+                    }
+
+                    if !result.tests.isEmpty {
+                        resultSection("Tests") {
+                            ForEach(result.tests) { test in
+                                labeledResult(
+                                    title: test.name,
+                                    detail: test.message ?? (test.passed ? "Passed" : "Failed"),
+                                    success: test.passed
+                                )
+                            }
+                        }
+                    }
+
+                    if !result.logs.isEmpty {
+                        resultSection("Console") {
+                            ForEach(result.logs) { line in
+                                Text(line.text)
+                                    .font(.body.monospaced())
+                                    .foregroundStyle(logColor(line.level))
+                                    .textSelection(.enabled)
+                            }
+                        }
+                    }
+
+                    if let errorMessage = result.errorMessage {
+                        resultSection("Error") {
+                            Text(errorMessage)
+                                .font(.body.monospaced())
+                                .foregroundStyle(theme.status.color(for: .clientError))
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            ContentUnavailableView(
+                "No Scripts",
+                systemImage: "hammer",
+                description: Text("Add extractors or a test script, then send the request.")
+            )
+        }
+    }
+
+    private func resultSection(_ title: LocalizedStringResource, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+            content()
+        }
+    }
+
+    private func labeledResult(title: String, detail: String, success: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: success ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundStyle(theme.status.color(for: success ? .success : .clientError))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body.weight(.medium))
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            }
+        }
+    }
+
+    private func logColor(_ level: ScriptLogLine.Level) -> Color {
+        switch level {
+        case .log: theme.syntax.text
+        case .warn: theme.status.color(for: .redirect)
+        case .error: theme.status.color(for: .clientError)
+        }
+    }
+}
+
 #Preview("Idle") {
     ResponsePane(state: .idle)
         .frame(width: 640, height: 280)
@@ -232,6 +334,10 @@ private struct ResponseCookiesView: View {
 }
 
 #Preview("200") {
-    ResponsePane(state: RequestRuntime.preview.states["preview-ok"] ?? .idle)
+    ResponsePane(
+        state: RequestRuntime.preview.states["preview-ok"] ?? .idle,
+        scriptResult: RequestRuntime.preview.scriptResults["preview-ok"]
+    )
+        .environment(\.appTheme, .default)
         .frame(width: 640, height: 320)
 }

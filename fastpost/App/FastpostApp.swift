@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct FastpostApp: App {
-    @State private var session = AppSession()
+    @State private var session: AppSession
     @State private var certificates: ClientCertificateStore
     @State private var runtime: RequestRuntime
     @State private var keybindings = KeybindingStore()
@@ -10,9 +10,12 @@ struct FastpostApp: App {
     @AppStorage(AppearanceStorage.themeIDKey) private var themeID = AppThemeID.default.rawValue
 
     init() {
+        let session = AppSession()
         let certificates = ClientCertificateStore()
         let runtime = RequestRuntime()
         runtime.certificates = certificates
+        runtime.automation = session
+        _session = State(initialValue: session)
         _certificates = State(initialValue: certificates)
         _runtime = State(initialValue: runtime)
     }
@@ -49,6 +52,7 @@ struct FastpostApp: App {
                 }
                 Tab("Certificates", systemImage: "lock.doc") {
                     CertificatesSettingsView()
+                        .scenePadding()
                 }
                 Tab("Editor", systemImage: "chevron.left.forwardslash.chevron.right") {
                     EditorSettingsView()

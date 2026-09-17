@@ -37,7 +37,8 @@ enum PostmanImporter {
     static func importedFolder(from collection: Collection, named fallbackName: String) -> CollectionItem {
         CollectionItem(
             name: displayName(collection.info.name, fallback: fallbackName),
-            item: collection.item.map(remintedItem)
+            item: collection.item.map(remintedItem),
+            event: collection.event
         )
     }
 
@@ -111,7 +112,9 @@ enum PostmanImporter {
         CollectionItem(
             name: item.name,
             item: item.item.map { $0.map(remintedItem) },
-            request: item.request
+            request: item.request,
+            event: item.event,
+            responseExtractors: item.responseExtractors
         )
     }
 

@@ -13,6 +13,7 @@ struct CertificatesSettingsView: View {
             CertificateEditorDetail(certificateID: selection)
                 .frame(minWidth: 420)
         }
+        .clipShape(.rect)
         .onAppear {
             if selection == nil {
                 selection = store.certificates.first?.id

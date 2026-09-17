@@ -7,7 +7,12 @@ enum RequestRunState: Equatable {
     case failed(HTTPTransportFailure)
 }
 
-struct HTTPExchange: Equatable {
+struct HTTPSendOutcome: Sendable {
+    var exchange: HTTPExchange
+    var rawBody: Data
+}
+
+struct HTTPExchange: Equatable, Sendable {
     var statusCode: Int
     var statusText: String
     var duration: Duration
@@ -47,7 +52,7 @@ enum StatusFamily: Equatable {
     case informational, success, redirect, clientError, serverError, unknown
 }
 
-enum ResponseBody: Equatable {
+enum ResponseBody: Equatable, Sendable {
     case empty
     case json(String)
     case text(String)
@@ -61,7 +66,7 @@ enum ResponseBody: Equatable {
     }
 }
 
-struct ResponseCookie: Identifiable, Equatable, Hashable {
+struct ResponseCookie: Identifiable, Equatable, Hashable, Sendable {
     var name: String
     var value: String
     var domain: String

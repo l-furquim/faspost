@@ -9,7 +9,7 @@ struct HTTPClient: Sendable {
     var timeout: TimeInterval { preferences.timeoutInterval }
     var previewLimit: Int { preferences.previewLimit }
 
-    func send(_ request: HTTPRequest) async -> Result<HTTPExchange, HTTPTransportFailure> {
+    func send(_ request: HTTPRequest) async -> Result<HTTPSendOutcome, HTTPTransportFailure> {
         do {
             let urlRequest = try makeURLRequest(from: request)
             let session = makeSession(originalRequest: urlRequest)
@@ -21,7 +21,13 @@ struct HTTPClient: Sendable {
             guard let http = response as? HTTPURLResponse else {
                 return .failure(.unknown(String(localized: "The server returned an unexpected response.")))
             }
-            return .success(makeExchange(data: data, response: http, requestURL: urlRequest.url ?? http.url!, duration: duration))
+            let exchange = makeExchange(
+                data: data,
+                response: http,
+                requestURL: urlRequest.url ?? http.url!,
+                duration: duration
+            )
+            return .success(HTTPSendOutcome(exchange: exchange, rawBody: data))
         } catch is HTTPClientError {
             return .failure(.invalidURL)
         } catch {

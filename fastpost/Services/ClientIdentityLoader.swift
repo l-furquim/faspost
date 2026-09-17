@@ -14,7 +14,11 @@ struct ClientTLSCredential: @unchecked Sendable {
     }
 
     var urlCredential: URLCredential {
-        URLCredential(identity: identity, certificates: certificates, persistence: .forSession)
+        URLCredential(
+            identity: identity,
+            certificates: certificates.isEmpty ? nil : certificates,
+            persistence: .forSession
+        )
     }
 }
 

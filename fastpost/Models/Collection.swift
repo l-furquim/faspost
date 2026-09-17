@@ -6,6 +6,7 @@ struct Collection: Codable, Equatable, Hashable {
     var info: CollectionInfo
     var item: [CollectionItem]
     var variable: [Variable]
+    var event: [CollectionEvent]
 
     static let postmanV21Schema = "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 
@@ -13,12 +14,14 @@ struct Collection: Codable, Equatable, Hashable {
         case info
         case item
         case variable
+        case event
     }
 
-    init(info: CollectionInfo, item: [CollectionItem], variable: [Variable] = []) {
+    init(info: CollectionInfo, item: [CollectionItem], variable: [Variable] = [], event: [CollectionEvent] = []) {
         self.info = info
         self.item = item
         self.variable = variable
+        self.event = event
     }
 
     init(from decoder: Decoder) throws {
@@ -26,6 +29,17 @@ struct Collection: Codable, Equatable, Hashable {
         info = try container.decode(CollectionInfo.self, forKey: .info)
         item = container.decodeLossyArray(CollectionItem.self, forKey: .item)
         variable = container.decodeLossyArray(Variable.self, forKey: .variable)
+        event = container.decodeLossyArray(CollectionEvent.self, forKey: .event)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(info, forKey: .info)
+        try container.encode(item, forKey: .item)
+        try container.encode(variable, forKey: .variable)
+        if !event.isEmpty {
+            try container.encode(event, forKey: .event)
+        }
     }
 
     static func empty(named name: String) -> Collection {
@@ -90,6 +104,8 @@ struct CollectionItem: Identifiable, Codable, Equatable, Hashable {
     var name: String
     var item: [CollectionItem]?
     var request: HTTPRequest?
+    var event: [CollectionEvent]
+    var responseExtractors: [ResponseExtractor]
 
     var isFolder: Bool { item != nil }
 
@@ -111,18 +127,23 @@ struct CollectionItem: Identifiable, Codable, Equatable, Hashable {
         case name
         case item
         case request
+        case event
     }
 
     init(
         id: String = UUID().uuidString,
         name: String,
         item: [CollectionItem]? = nil,
-        request: HTTPRequest? = nil
+        request: HTTPRequest? = nil,
+        event: [CollectionEvent] = [],
+        responseExtractors: [ResponseExtractor] = []
     ) {
         self.id = id
         self.name = name
         self.item = item
         self.request = request
+        self.event = event
+        self.responseExtractors = responseExtractors
     }
 
     init(from decoder: Decoder) throws {
@@ -131,6 +152,22 @@ struct CollectionItem: Identifiable, Codable, Equatable, Hashable {
         name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
         item = container.decodeLossyArrayIfPresent(CollectionItem.self, forKey: .item)
         request = try? container.decode(HTTPRequest.self, forKey: .request)
+        let rawEvents = container.decodeLossyArray(CollectionEvent.self, forKey: .event)
+        let split = CollectionEvent.splitExtractors(from: rawEvents)
+        event = split.events
+        responseExtractors = split.extractors
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(item, forKey: .item)
+        try container.encodeIfPresent(request, forKey: .request)
+        let encodedEvents = CollectionEvent.merging(events: event, extractors: responseExtractors)
+        if !encodedEvents.isEmpty {
+            try container.encode(encodedEvents, forKey: .event)
+        }
     }
 
     static func folder(named name: String) -> CollectionItem {
@@ -155,7 +192,21 @@ struct CollectionItem: Identifiable, Codable, Equatable, Hashable {
 
     func copiedRequest(named name: String? = nil) -> CollectionItem? {
         guard let request, !isFolder else { return nil }
-        return CollectionItem(name: name ?? displayName, request: request)
+        return CollectionItem(
+            name: name ?? displayName,
+            request: request,
+            event: event,
+            responseExtractors: responseExtractors
+        )
+    }
+}
+
+extension CollectionItem: Transferable {
+    static var transferRepresentation: some TransferRepresentation {
+        ProxyRepresentation(
+            exporting: { CollectionItemID($0.id) },
+            importing: { CollectionItem(id: $0.rawValue, name: "") }
+        )
     }
 }
 
@@ -272,7 +323,7 @@ struct HTTPRequest: Codable, Equatable, Hashable {
     }
 }
 
-struct HTTPHeader: Codable, Equatable, Hashable {
+struct HTTPHeader: Codable, Equatable, Hashable, Sendable {
     var key: String
     var value: String
     var disabled: Bool?
@@ -512,6 +563,16 @@ extension [CollectionItem] {
             }
         }
         return nil
+    }
+
+    func ancestorIDs(of id: String) -> [String] {
+        var ids: [String] = []
+        var current = parentID(of: id)
+        while let parent = current {
+            ids.append(parent)
+            current = parentID(of: parent)
+        }
+        return ids
     }
 
     func isDescendant(_ candidateID: String?, of ancestorID: String) -> Bool {
